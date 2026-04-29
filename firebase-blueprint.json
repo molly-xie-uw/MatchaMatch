@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Base user profile representing students, mentors, or employers.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["freshman", "upper-year", "employer", "mentor"] },
+        "major": { "type": "string" },
+        "bio": { "type": "string" },
+        "interests": { "type": "array", "items": { "type": "string" } },
+        "avatarUrl": { "type": "string", "format": "uri" },
+        "year": { "type": "integer" },
+        "companyName": { "type": "string" },
+        "goals": { "type": "string" },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "availability": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Match": {
+      "title": "Professional Handshake",
+      "description": "Represents a swipe interaction or handshake between two users.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userIds": { "type": "array", "items": { "type": "string" } },
+        "swipingUserId": { "type": "string" },
+        "targetUserId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "liked", "passed", "matched", "unmatched"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userIds", "swipingUserId", "targetUserId", "status"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "A message sent within a match.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "matchId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["matchId", "senderId", "text", "createdAt"]
+    },
+    "Post": {
+      "title": "Matcha Board Post",
+      "description": "A question or article shared in the community hub.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["question", "article"] },
+        "category": { "type": "string", "enum": ["career", "tech", "mentorship", "general"] },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "isAnonymous": { "type": "boolean" },
+        "viewCount": { "type": "integer" },
+        "likeCount": { "type": "integer" },
+        "commentCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "title", "content", "type", "category"]
+    },
+    "Comment": {
+      "title": "Post Comment",
+      "description": "A response or comment on a community post.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "postId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "text": { "type": "string" },
+        "isAnonymous": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "authorId", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles."
+    },
+    "matches/{matchId}": {
+      "schema": "Match",
+      "description": "User matches and swiping history."
+    },
+    "matches/{matchId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages within a specific match."
+    },
+    "posts/{postId}": {
+      "schema": "Post",
+      "description": "Community posts (questions and articles)."
+    },
+    "posts/{postId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Comments on community posts."
+    }
+  }
+}

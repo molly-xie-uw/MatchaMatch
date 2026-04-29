@@ -1,0 +1,157 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isAdmin() {
+      return isSignedIn() && 
+             'email' in request.auth.token &&
+             (request.auth.token.email == 'prabhsharans0@gmail.com' || 
+              request.auth.token.email.lower() == 'prabhsharans0@gmail.com');
+    }
+
+    // --- User Validation ---
+    function isValidUser(data) {
+      return (isAdmin() || (
+               (!('uid' in data) || data.uid == request.auth.uid || data.uid.startsWith('test_bot_')) &&
+               (!('email' in data) || data.email is string) &&
+               (!('role' in data) || data.role in ['freshman', 'upper-year', 'employer', 'mentor']) &&
+               (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+               (!('bio' in data) || (data.bio is string && data.bio.size() <= 1000)) &&
+               (!('interests' in data) || (data.interests is list && data.interests.size() <= 20)) &&
+               (!('major' in data) || (data.major is string && data.major.size() <= 100)) &&
+               (!('weeklyAvailability' in data) || data.weeklyAvailability is map) &&
+               (!('isMentor' in data) || data.isMentor is bool) &&
+               (!('location' in data) || (data.location is string && data.location.size() <= 100)) &&
+               (!('companyName' in data) || (data.companyName is string && data.companyName.size() <= 100)) &&
+               (!('goals' in data) || (data.goals is string && data.goals.size() <= 1000)) &&
+               (!('skills' in data) || (data.skills is list && data.skills.size() <= 30)) &&
+               (!('year' in data) || data.year is int)
+             ));
+    }
+
+    // --- Match Validation ---
+    function isValidMatch(data) {
+      return data.userIds is list && data.userIds.size() == 2 &&
+             (isAdmin() || request.auth.uid in data.userIds) &&
+             data.status in ['pending', 'liked', 'passed', 'matched'] &&
+             (!('id' in data) || (data.id is string && data.id.size() <= 256)) &&
+             'swipes' in data && data.swipes is map &&
+             (!('unreadCount' in data) || data.unreadCount is map) &&
+             (!('notifiedUsers' in data) || data.notifiedUsers is list) &&
+             (!('icebreaker' in data) || data.icebreaker is string) &&
+             (!('coffeeChat' in data) || data.coffeeChat is map);
+    }
+
+    // --- Message Validation ---
+    function isValidMessage(data) {
+      return data.keys().hasAll(['matchId', 'senderId', 'text', 'createdAt']) &&
+             data.matchId is string &&
+             data.senderId == request.auth.uid &&
+             data.text is string && data.text.size() <= 2000 &&
+             data.createdAt == request.time;
+    }
+
+    // --- Community Validation ---
+    function isValidPost(data) {
+      return (isAdmin() || (
+               data.keys().hasAll(['authorId', 'title', 'content', 'type', 'category', 'createdAt']) &&
+               (data.authorId == request.auth.uid || data.authorId.startsWith('test_bot_')) &&
+               data.title is string && data.title.size() <= 200 &&
+               data.content is string && data.content.size() <= 20000 &&
+               data.type in ['question', 'article'] &&
+               data.category in ['career', 'tech', 'mentorship', 'general'] &&
+               (!('tags' in data) || (data.tags is list && data.tags.size() <= 10)) &&
+               (!('isAnonymous' in data) || data.isAnonymous is bool) &&
+               (!('commentCount' in data) || data.commentCount is int) &&
+               (!('likeCount' in data) || data.likeCount is int) &&
+               (!('viewCount' in data) || data.viewCount is int)
+             ));
+    }
+
+    function isValidComment(data) {
+      return data.keys().hasAll(['postId', 'authorId', 'text', 'createdAt']) &&
+             data.authorId == request.auth.uid &&
+             data.postId is string &&
+             data.text is string && data.text.size() <= 2000;
+    }
+
+    // --- Collections ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn(); // Basic discovery
+      allow create: if isEmailVerified() && (isOwner(userId) || userId.startsWith('test_bot_') || isAdmin()) && 
+                    incoming().keys().hasAll(['uid', 'email', 'role']) &&
+                    isValidUser(incoming());
+      allow update: if isEmailVerified() && (isOwner(userId) || userId.startsWith('test_bot_') || isAdmin()) && isValidUser(incoming()) && 
+                    (isAdmin() || incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'bio', 'interests', 'major', 'avatarUrl', 'year', 'companyName', 'goals', 'skills', 'weeklyAvailability', 'updatedAt', 'role', 'isMentor', 'location']));
+      allow delete: if isAdmin();
+    }
+
+    match /matches/{matchId} {
+      // Users can check for matches they might be in
+      allow get: if (isSignedIn() && (resource == null || request.auth.uid in resource.data.userIds)) || isAdmin();
+      allow list: if (isSignedIn() && request.auth.uid in resource.data.userIds) || isAdmin();
+      
+      // Creating or updating a swipe action
+      allow create: if isEmailVerified() && isValidMatch(incoming()) && 
+                    incoming().swipes.keys().size() == 1 &&
+                    (request.auth.uid in incoming().swipes.keys() || request.auth.uid in incoming().userIds) &&
+                    (!('updatedAt' in incoming()) || incoming().updatedAt == request.time) &&
+                    (!('lastMessageAt' in incoming()) || incoming().lastMessageAt == request.time);
+      
+      // Updating existing match (e.g. reciprocal swipe, messaging)
+      allow update: if isEmailVerified() && (request.auth.uid in existing().userIds || isAdmin()) &&
+                    isValidMatch(incoming()) &&
+                    (isAdmin() || (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'swipes', 'lastMessage', 'lastMessageAt', 'unreadCount', 'coffeeChat', 'notifiedUsers', 'icebreaker']) &&
+                    (!('updatedAt' in incoming().diff(existing()).affectedKeys()) || incoming().updatedAt == request.time) &&
+                    (!('lastMessageAt' in incoming().diff(existing()).affectedKeys()) || incoming().lastMessageAt == request.time)));
+      
+      // Admin delete
+      allow delete: if isAdmin();
+    }
+
+    match /matches/{matchId}/messages/{messageId} {
+      allow read: if (isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds) || isAdmin();
+      allow create: if isEmailVerified() && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.userIds &&
+                    isValidMessage(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isEmailVerified() && (isAdmin() || (isValidPost(incoming()) && incoming().createdAt == request.time));
+      allow update: if isEmailVerified() && (
+        isAdmin() ||
+        // Owner update (content, title, etc)
+        (existing().authorId == request.auth.uid && isValidPost(incoming()) && incoming().updatedAt == request.time &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'type', 'category', 'tags', 'isAnonymous', 'updatedAt'])) ||
+        // Public action (like, view, comment increment)
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likeCount', 'viewCount', 'commentCount', 'likes']) &&
+         (!('likeCount' in incoming().diff(existing()).affectedKeys()) || (incoming().likeCount == existing().likeCount + 1 || incoming().likeCount == existing().likeCount - 1)) &&
+         (!('viewCount' in incoming().diff(existing()).affectedKeys()) || incoming().viewCount == existing().viewCount + 1) &&
+         (!('commentCount' in incoming().diff(existing()).affectedKeys()) || incoming().commentCount == existing().commentCount + 1) &&
+         (!('likes' in incoming().diff(existing()).affectedKeys()) || (incoming().likes.size() == existing().likes.size() + 1 || incoming().likes.size() == existing().likes.size() - 1)))
+      );
+      allow delete: if isAdmin() || (isEmailVerified() && isOwner(existing().authorId));
+    }
+
+    match /posts/{postId}/comments/{commentId} {
+      allow read: if isSignedIn();
+      allow create: if isEmailVerified() && isValidComment(incoming()) && incoming().createdAt == request.time;
+      allow delete: if isAdmin() || (isEmailVerified() && isOwner(existing().authorId));
+    }
+  }
+}
