@@ -6,10 +6,10 @@ A swipe-based networking platform for students to find mentors, peers, and caree
 
 ## Team
 
-- **Prabhsharan Singh Sethi** - Lead Developer
-- **Molly Xie** - Full Stack Developer
-- **Gurleen Kaur Mangat** - Ideation & Product Management
-- **Evelyn Wang** - Marketing & Product Management
+- [**Prabhsharan Singh Sethi**](https://www.linkedin.com/in/prabhsharan-singh-sethi/) - Lead Developer
+- [**Molly Xie**](https://www.linkedin.com/in/molly-xie-uw/) - Full Stack Developer
+- [**Gurleen Kaur Mangat**](https://www.linkedin.com/in/gurleen-kaur19/) - Ideation & Product Management
+- [**Evelyn Wang**](https://www.linkedin.com/in/lirong-wang-7ab039382/) - Marketing & Product Management
 
 ## Features
 
