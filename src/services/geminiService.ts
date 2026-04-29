@@ -2,9 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { UserProfile } from "../types";
 
 const FALLBACK_KEYS = [
-  "AIzaSyC7wRQqYPR53dsnw10bO5ni_yig4Kw3i1E",
-  "AIzaSyD3vHUdNLjiJCF2ex12Xl7q5eCf-oa_11w",
-  "AIzaSyAFZxBABAexXCFVwsI0V3iE6mH57sFCUEk"
+  "Add in extra keys"
 ];
 
 let currentKeyIndex = -1; // -1 means use the environment variable first
