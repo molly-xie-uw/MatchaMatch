@@ -1,6 +1,15 @@
 # MatchaMatch 🍵
 
+Built for **ConHacks 2026 Hackathon**.
+
 A swipe-based networking platform for students to find mentors, peers, and career opportunities through meaningful connections.
+
+## Team
+
+- **Prabhsharan Singh Sethi** - Lead Developer
+- **Molly Xie** - Full Stack Developer
+- **Gurleen Kaur Mangat** - Ideation & Product Management
+- **Evelyn Wang** - Marketing & Product Management
 
 ## Features
 
@@ -46,7 +55,10 @@ A swipe-based networking platform for students to find mentors, peers, and caree
    ```
 
 4. **Firebase Configuration**:
-   Place your Firebase configuration in a file named `firebase-applet-config.json` in the root directory:
+   A template for this file is provided as `firebase-applet-config.json.example`. Copy it to `firebase-applet-config.json` and fill in your values:
+   ```bash
+   cp firebase-applet-config.json.example firebase-applet-config.json
+   ```
    ```json
    {
      "apiKey": "...",
@@ -76,6 +88,11 @@ The app will be available at `http://localhost:3000`.
 - `npm run lint`: Runs TypeScript type checking.
 - `npm run clean`: Removes the `dist` folder.
 
-## License
+## Next Steps
 
-MIT
+- **Event Integration**: Direct integration with campus event calendars to suggest networking at specific workshops or mixers.
+- **Verified Mentor Badges**: Implementation of a verification system for industry professionals and upper-year mentors.
+- **Smart Portfolio Integration**: Allow users to sync their GitHub or LinkedIn profiles directly for better matching context.
+- **Group Matcha Sessions**: Support for small group networking "tea rooms" based on shared niche interests.
+
+
